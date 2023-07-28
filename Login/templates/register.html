@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+  <div class="text-center">
+    <img src="{% static 'Login/images/Logo.png' %}" alt="Image" style="width: 50px; height: 50px;">
+    <h2 style="font-family: 'Your Chosen Font', sans-serif; font-weight: bold; font-size: 24px; margin-top: 20px;">SMARTCASH</h2>
+  </div>
+  <div class="d-flex justify-content-center">
+    <div class="card border-0 shadow-smoke-white" style="width: 25rem;">
+      <div class="card-body">
+        <h5 class="card-title text-center">Create your account</h5>
+        <p class="text-center">Enter your personal details to create an account</p> <!-- New line -->
+
+<form method="POST" action="">
+	{% csrf_token %}
+	{% if form.errors %}
+			<div class="alert alert-warning alert-dismissible fade show" role="alert">
+			  Your Form Has Errors
+			  {% for field in form %}
+			  	{% if field.errors %}
+			  		{{ field.errors }}
+			  	{% endif %}
+			  {% endfor %}
+			  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+			</div>
+		{% endif %}
+
+	{{ form.as_p }}
+
+	<br/>
+	  <button type="submit" class="btn btn-primary rounded-pill" style="width: 100%;">Sign in</button>
+          <p class="text-center mt-3">Already have an account? <a href="{% url 'home' %}">Sign in</a></p>
+	</form>
+
+
+
+</div>
+
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

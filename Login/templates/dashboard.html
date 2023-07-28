@@ -1,0 +1,135 @@
+{% extends 'base1.html'  %}
+{% load static %}
+
+ {% block content %}
+
+<script>
+function copyToClipboard() {
+  const referralLinkInput = document.getElementById('referralLink');
+
+  // Select the text inside the input field
+  referralLinkInput.select();
+
+  // Copy the selected text to the clipboard
+  document.execCommand('copy');
+
+  // Deselect the input field (optional)
+  referralLinkInput.setSelectionRange(0, 0);
+
+  // Notify the user that the link has been copied
+  alert('Referral link copied to clipboard!');
+}
+</script>
+
+
+        <!-- partial -->
+        <div class="main-panel">
+          <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title">
+                <span class="page-title-icon bg-gradient-primary text-white me-2">
+                  <i class="mdi mdi-home"></i>
+                </span> Dashboard
+              </h3>
+              <nav aria-label="breadcrumb">
+                <ul class="breadcrumb">
+                  <li class="breadcrumb-item active" aria-current="page">
+                    <span></span>Overview <i class="mdi mdi-alert-circle-outline icon-sm text-primary align-middle"></i>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+            <div class="row">
+              <div class="col-md-4 stretch-card grid-margin">
+                <div class="card bg-gradient-danger card-img-holder text-white">
+                  <div class="card-body">
+                    <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+                    <h4 class="font-weight-normal mb-3">Account Balance  <i class="mdi mdi-coin mdi-24px float-right"></i>
+                    </h4>
+                    <h2 class="mb-5">KES {{account.account_balance}}</h2>
+                    <h6 class="card-text">Current Account balance</h6>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 stretch-card grid-margin">
+                <div class="card bg-gradient-info card-img-holder text-white">
+                  <div class="card-body">
+                    <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+                    <h4 class="font-weight-normal mb-3">Referral Earnings  <i class="mdi mdi-account-multiple-plus mdi-24px float-right"></i>
+                    </h4>
+                    <h2 class="mb-5">KES {{account.referral_balance}}</h2>
+                    <h6 class="card-text">Earn by Affiliate marketing</h6>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 stretch-card grid-margin">
+                <div class="card bg-gradient-success card-img-holder text-white">
+                  <div class="card-body">
+                    <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+                    <h4 class="font-weight-normal mb-3">WhatsApp status Views  <i class="mdi mdi-eye mdi-24px float-right"></i>
+                    </h4>
+                    <h2 class="mb-5">KES {{account.views_balance}}</h2>
+                    <h6 class="card-text">Earn by views</h6>
+                  </div>
+                </div>
+              </div>
+               <div class="col-md-6 stretch-card grid-margin">
+                <div class="card bg-gradient-primary card-img-holder text-white">
+                  <div class="card-body">
+                    <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+                    <h4 class="font-weight-normal mb-3">Current package type  <i class="mdi mdi-star-circle mdi-24px float-right"></i>
+                    </h4>
+                    <h2 class="mb-5">{{ package.package_type}}</h2>
+                    <h6 class="card-text">Update to earn more money</h6>
+                  </div>
+                </div>
+              </div>
+               <div class="col-md-6 stretch-card grid-margin">
+              <div class="card bg-gradient-warning card-img-holder text-white">
+                 <div class="card-body">
+                   <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+                   <h4 class="font-weight-normal mb-3">Account Status </h4>
+{% now "Y-m-d H:i:s" as current_datetime %}
+
+{% if package.due_date > current_datetime %}
+  <h2 class="mb-5">Active <i class="mdi mdi-check-circle-outline mdi-24px text-success float-right"></i></h2>
+{% else %}
+  <h2 class="mb-5">Expired <i class="mdi mdi-close-circle-outline mdi-24px text-danger float-right"></i></h2>
+{% endif %}
+                     formatted_due_date = package.due_date.strftime("%d/%m/%Y %I:%M %p")
+                  <h6 class="card-text">Account will Expire on: {{ formatted_due_date }}</h6>
+
+                </div>
+              </div>
+            </div>
+            </div>
+<div class="col-md-12 stretch-card grid-margin">
+  <div class="card bg-gradient-secondary card-img-holder text-black">
+    <div class="card-body">
+      <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+      <h4 class="font-weight-normal mb-3">Referral Link <a href="#" class="mdi mdi-eye mdi-24px float-right"></a></h4>
+     <div class="mb-3">
+    <label for="referralLink" class="form-label">Enter your referral link:</label>
+    <input type="text" class="form-control" id="referralLink" name="referralLink" placeholder="Paste your referral link here" value="http://127.0.0.1:8000/register/{{ username }}">
+  </div>
+  <p>This is your unique referral link. Share it with your friends to earn rewards!</p>
+  <button type="button" class="btn btn-primary rounded-pill ml-2" onclick="copyToClipboard()">Copy Link</button>
+      <h6 class="card-text">Click "Copy Link" to get your referral Link</h6>
+    </div>
+  </div>
+</div>
+          </div>
+          <!-- content-wrapper ends -->
+          <!-- partial:partials/_footer.html -->
+          <footer class="footer">
+            <div class="container-fluid d-flex justify-content-between">
+              <span class="text-muted d-block text-center text-sm-start d-sm-inline-block">Copyright © smartCash.com 2023</span>
+            </div>
+          </footer>
+          <!-- partial -->
+        </div>
+        <!-- main-panel ends -->
+
+ {% endblock %}
+
+

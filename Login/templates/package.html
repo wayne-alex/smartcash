@@ -1,0 +1,101 @@
+{% extends 'base1.html' %}
+{% load static %}
+{% block content %}
+    <div class="main-panel">
+          <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title">
+                <span class="page-title-icon bg-gradient-primary text-white me-2">
+                  <i class="mdi mdi-shape-plus"></i>
+                </span> Packages
+              </h3>
+              <nav aria-label="breadcrumb">
+                <ul class="breadcrumb">
+                  <li class="breadcrumb-item active" aria-current="page">
+                    <span></span>Overview <i class="mdi mdi-alert-circle-outline icon-sm text-primary align-middle"></i>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+            <div class="col-md-12 stretch-card grid-margin">
+                <div class="card bg-gradient-primary card-img-holder text-white">
+                  <div class="card-body">
+                    <img src="{% static 'Login/stylesheets/assets/images/dashboard/circle.svg' %}" class="card-img-absolute" alt="circle-image" />
+                    <h4 class="font-weight-normal mb-3">Current package type  <i class="mdi mdi-star-circle mdi-24px float-right"></i>
+                    </h4>
+                    <h2 class="mb-5">Bronze</h2>
+                    <h6 class="card-text">Update to earn more money</h6>
+                  </div>
+                </div>
+                </div>
+
+             <div class="row">
+              <div class="col-12 grid-margin">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Recent Tickets</h4>
+                    <div class="table-responsive">
+                      <table class="table">
+                        <thead>
+                          <tr>
+                            <th> Package type </th>
+                            <th> Color </th>
+                            <th> Price </th>
+                            <th> Payment per week </th>
+                            <th> Referrals Required </th>
+                            <th> percentage commission </th>
+                            <th> Actions </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                           <td> GOLD </td>
+                             <td>
+                              <label class="badge badge-gradient-warning">GOLD</label>
+                            </td>
+                            <td> Ksh 500 </td>
+                            <td> 2 Times </td>
+                            <td> 3 referrals </td>
+                            <td> 35% </td>
+                            <td><a href="#" class="btn btn-warning">Buy now</a></td>
+
+                          </tr>
+                         <tr>
+                           <td> SILVER </td>
+                             <td>
+                              <label class="badge badge-gradient-secondary">SILVER</label>
+                            </td>
+                            <td> Ksh 200 </td>
+                            <td> 2 Times </td>
+                            <td> 5 referrals </td>
+                            <td> 20% </td>
+                            <td><a href="#" class="btn btn-secondary">Buy now</a></td>
+
+                          </tr>
+                         <tr>
+                           <td> BRONZE </td>
+                             <td>
+                              <label class="badge badge-gradient-danger">BRONZE</label>
+                            </td>
+                            <td> Ksh 100 </td>
+                            <td> 1 Times </td>
+                            <td> 7 referrals </td>
+                            <td> 10% </td>
+                           <td><a href="#" class="btn btn-danger">Buy now</a></td>
+
+                          </tr>
+
+
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            </div>
+
+
+{% endblock %}

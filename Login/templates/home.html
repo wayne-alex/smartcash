@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+  <div class="text-center">
+    <img src="{% static 'Login/images/Logo.png' %}" alt="Image" style="width: 50px; height: 50px;">
+    <h2 style="font-family: 'Your Chosen Font', sans-serif; font-weight: bold; font-size: 24px; margin-top: 20px;">SMARTCASH</h2>
+  </div>
+  <div class="d-flex justify-content-center">
+    <div class="card border-0 shadow-smoke-white" style="width: 25rem;">
+      <div class="card-body">
+        <h5 class="card-title text-center">Sign in to account</h5>
+        <form method="post" action="{% url 'home' %}">
+           {% csrf_token %}
+          <div class="mb-3">
+            <label for="exampleInputEmail1" class="form-label">Username</label>
+            <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Username" name="username">
+            <div id="emailHelp" class="form-text">We'll never share your username with anyone else.</div>
+          </div>
+          <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label">Password</label>
+            <input type="password" class="form-control" id="exampleInputPassword1" placeholder="password"name="password">
+          </div>
+          <div class="mb-3 text-center">
+            <a href="#">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary rounded-pill" style="width: 100%;">Sign in</button>
+          <p class="text-center mt-3">Don't have an account? <a href="{% url 'register'  'Thecaptain' %}">Create account</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

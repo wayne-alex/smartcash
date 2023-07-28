@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<head>
+    <title>Verify Phone Number</title>
+    <!-- Add any necessary CSS styles here -->
+</head>
+<body>
+<div class="text-center">
+    <img src="{% static 'Login/images/Logo.png' %}" alt="Image" style="width: 50px; height: 50px;">
+    <h2 style="font-family: 'Your Chosen Font', sans-serif; font-weight: bold; font-size: 24px; margin-top: 20px;">SMARTCASH</h2>
+  </div>
+
+    {% if not verification_code_sent %}
+      <div class="container">
+        <div class="row mt-5">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <h2>Verify Phone Number</h2>
+                        </div>
+                        <form method="post" action="{% url 'phone_verification' %}">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+
+                                        </div>
+                                        <select class="form-select" name="country_code" required>
+                                            <option value="">Select Country Code</option>
+                                            <option value="+213">Algeria (+213)</option>
+                                            <option value="+20">Egypt (+20)</option>
+                                            <option value="+251">Ethiopia (+251)</option>
+                                            <option value="+233">Ghana (+233)</option>
+                                            <option value="+254">Kenya (+254)</option>
+                                            <!-- Add more countries and codes as needed -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="tel" class="form-control" name="phone_number" pattern="[0-9]{10}" maxlength="10" placeholder="Enter 10-digit Phone Number" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Verify</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="h1">Enter verification code.</p>
+    <p>Please enter the 6-digit code sent to you through WhatsApp.</p>
+    <form method="post" action="{% url 'verify_code' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="exampleFormControlInput2" class="form-label">Verification code</label>
+            <input type="number" class="form-control" id="exampleFormControlInput2" name="verification_code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" style="width: 50%;" required>
+        </div>
+        <button type="submit" class="btn btn-success">Verify</button>
+    </form>
+    <p><a href="#" id="resend_link">Didn't receive the code?</a></p>
+    <p>Time left: <span id="countdown">2:00</span></p>
+    <p><a href="{% url 'change_number' %}">Change number</a></p>
+
+    <!-- JavaScript to disable resend link and implement countdown timer -->
+    <script>
+        // Function to disable the resend link
+        function disableResendLink() {
+            var resendLink = document.getElementById("resend_link");
+            resendLink.style.pointerEvents = "none";
+            resendLink.style.color = "#ccc";
+        }
+
+        // Function to update countdown timer
+        function updateCountdown() {
+            var timerElement = document.getElementById("countdown");
+            var timeLeft = 120; // 2 minutes in seconds
+
+            var countdownInterval = setInterval(function() {
+                var minutes = Math.floor(timeLeft / 60);
+                var seconds = timeLeft % 60;
+
+                timerElement.innerHTML = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    timerElement.innerHTML = "0:00";
+                    enableResendLink(); // Enable resend link when timer ends
+                }
+
+                timeLeft--;
+            }, 1000);
+        }
+
+        // Function to enable resend link
+        function enableResendLink() {
+            var resendLink = document.getElementById("resend_link");
+            resendLink.style.pointerEvents = "auto";
+            resendLink.style.color = "#007bff";
+        }
+
+        // Call the functions when the page loads
+        disableResendLink();
+        updateCountdown();
+    </script>
+    {% endif %}
+</body>
+
+{% endblock %}

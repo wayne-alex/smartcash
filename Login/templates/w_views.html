@@ -1,0 +1,62 @@
+{% extends 'base1.html'  %}
+{% load static %}
+
+ {% block content %}
+
+         <div class="row p-0 m-0 proBanner" id="proBanner">
+        <div class="col-md-12 p-0 m-0">
+          <div class="card-body card-body-padding d-flex align-items-center justify-content-between">
+            <div class="ps-lg-1">
+              <div class="d-flex align-items-center justify-content-between">
+                <p class="mb-0 font-weight-medium me-3 buy-now-text">Current Package is Bronze,update to earn more</p>
+                <a href="https://www.bootstrapdash.com/product/purple-bootstrap-admin-template/?utm_source=organic&utm_medium=banner&utm_campaign=buynow_demo" target="_blank" class="btn me-2 buy-now-btn border-0">Update Package</a>
+              </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between">
+              <a href="https://www.bootstrapdash.com/product/purple-bootstrap-admin-template/"><i class="mdi mdi-home me-3 text-white"></i></a>
+              <button id="bannerClose" class="btn border-0 p-0">
+                <i class="mdi mdi-close text-white me-0"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="main-panel">
+          <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title">
+                <span class="page-title-icon bg-gradient-primary text-white me-2">
+                  <i class="mdi mdi-whatsapp"></i>
+                </span> WhatsApp Views
+              </h3>
+              <nav aria-label="breadcrumb">
+                <ul class="breadcrumb">
+                  <li class="breadcrumb-item active" aria-current="page">
+                    <span></span>Overview <i class="mdi mdi-alert-circle-outline icon-sm text-primary align-middle"></i>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+           <div class="card">
+  <h5 class="card-header">Whatsapp view not Activated!</h5>
+  <div class="card-body">
+      {% if package.package_type == 'GOLD' %}
+    <h5 class="card-title">Current Package:GOLD</h5>
+    <p class="card-text">You need to referrer Two(2) people to activate.</p>
+      {% elif package.package_type == "SILVER" %}
+       <h5 class="card-title">Current Package:SILVER</h5>
+    <p class="card-text">You need to referrer FIVE(5) people to activate.</p>
+      {% else %}
+       <h5 class="card-title">Current Package:BRONZE</h5>
+    <p class="card-text">You need to referrer Seven(7) people to activate.{{ referral_count }}</p>
+      {% endif %}
+      <div class="progress" role="progressbar" aria-label="Warning example" aria-valuenow="{{ referral_count }}" aria-valuemin="0" aria-valuemax="7">
+  <div class="progress-bar bg-warning" style="width: 75%"></div>
+</div>
+
+  </div>
+</div>
+            </div>
+            </div>
+
+{% endblock %}
