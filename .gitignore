@@ -1,0 +1,10 @@
+# Ignore compiled binaries
+*.exe
+*.dll
+
+# Ignore logs
+/logs/
+
+# Ignore sensitive credentials
+/config/credentials.json
+/smartcash/.env
