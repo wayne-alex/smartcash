@@ -10,9 +10,9 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     email_confirmed = models.BooleanField(default=False)
     package_bought = models.BooleanField(default=False)
-    account_balance = models.IntegerField()
-    referral_balance = models.IntegerField()
-    views_balance = models.IntegerField()
+    account_balance = models.IntegerField(default=0)
+    referral_balance = models.IntegerField(default=0)
+    views_balance = models.IntegerField(default=0)
 
     def __str__(self):
         return f"Account(user={self.user.username}, email_confirmed={self.email_confirmed}, package_bought={self.package_bought})"
