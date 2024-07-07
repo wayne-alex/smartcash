@@ -10,7 +10,7 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     email_confirmed = models.BooleanField(default=False)
     package_bought = models.BooleanField(default=False)
-    account_balance = models.IntegerField(default=0)
+    balance = models.IntegerField(default=0)
     referral_balance = models.IntegerField(default=0)
     views_balance = models.IntegerField(default=0)
 
@@ -66,3 +66,13 @@ class EmailToken(models.Model):
 
     def __str__(self):
         return f"EmailToken(user={self.user}, token={self.token})"
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(User, related_name='payment', on_delete=models.CASCADE, blank=True, null=True)
+    transaction_id = models.CharField(max_length=255, unique=True)
+    package_name = models.CharField(max_length=100)
+    package_price = models.DecimalField(max_digits=10, decimal_places=2)
+    phone_number = models.CharField(max_length=15)
+    status = models.CharField(max_length=10, default='pending')  # 'pending', 'success', 'failure'
+    created_at = models.DateTimeField(auto_now_add=True)

@@ -1,3 +1,6 @@
+import base64
+import json
+import uuid
 from datetime import datetime, timedelta
 
 import requests
@@ -5,11 +8,13 @@ from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
-from .models import Account, Package, Profile, Affiliate, EmailToken
+from .models import Account, Package, Profile, Affiliate, EmailToken, Payment
 
 
 # Helping methods
@@ -41,7 +46,45 @@ def send_email(name, to, subject, html_message):
     except requests.exceptions.RequestException as e:
         print("Error:", e)
 
+def generate_basic_auth_token(username, password):
+    # Concatenate username and password with colon
+    credentials = f'{username}:{password}'
+    # Base64 encode the credentials
+    encoded_credentials = base64.b64encode(credentials.encode('utf-8')).decode('utf-8')
+    # Creating the Basic Auth token
+    basic_auth_token = f'Basic {encoded_credentials}'
+    return basic_auth_token
 
+
+def initiate_deposit(amount, phone_number, external_reference, callback_url):
+    url = 'https://backend.payhero.co.ke/api/v2/payments'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': generate_basic_auth_token('gcK1MZHDXYAK5cZyRpi9', '5cDj7MvWv0sDFfEteVuzASKgQ1otW9yd33lDAjD2')
+    }
+    data = {
+        'amount': amount,
+        'phone_number': phone_number,
+        'provider': 'sasapay',
+        'network_code': '63902',  # For MPesa
+        'external_reference': external_reference,
+        'callback_url': callback_url
+    }
+
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        response_data = response.json()
+        if response.status_code == 201:
+            print("Payment request successful:")
+            print(response_data)
+        else:
+            print("Payment request failed:")
+            print(response_data)
+    except Exception as e:
+        print("An error occurred:", e)
+
+
+# Start views
 def home(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -171,7 +214,7 @@ def email_confirmation(request):
         email = user.email
         name = 'SMARTCASH LTD'
         subject = 'Welcome to Smart Cash'
-        url = f"https://smartcash.vercel.app/login"
+        url = "https://smartcash.vercel.app/login"
         send_email(
             to=email, name=name, subject=subject,
             html_message=render_to_string('welcomeEmail.html', {'name': user.username, 'url': url})
@@ -192,16 +235,7 @@ def dashboard(request):
 
     if not buy_state:
         return redirect('buy_package')
-
-
-@login_required
-def dashboard(request):
-    username = request.user.username
-    user_id = request.user.id
-    account = Account.objects.get(userid=user_id)
-    package_ = Package.objects.get(userid=user_id)
-
-    return render(request, 'dashboard.html', {'username': username, 'account': account, 'package': package_})
+    return render(request, 'dashboard.html', {'username': user.username, 'account': acc, })
 
 
 @login_required()
@@ -210,6 +244,8 @@ def buy_package(request):
     profile = Profile.objects.get(user=user)
     phone = profile.phone_number
     acc = Account.objects.get(user=user)
+
+
     if acc.package_bought:
         return redirect('dashboard')
     else:
@@ -374,3 +410,178 @@ def resend_code(request):
 def change_number(request):
     # Code to allow the user to change their phone number goes here.
     return redirect('verify_phone_number')
+
+@login_required()
+def initiate_payment(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            package_name = data.get('package_name')
+            package_price = data.get('package_price')
+            phone_number = data.get('phone_number')
+            user = request.user
+            phone_number = Profile.objects.get(user=user).phone_number
+
+            # Generate a unique transaction ID
+            transaction_id = str(uuid.uuid4())
+            callback_url = "https://smartcash.vercel.app/payment-callback/"
+            initiate_deposit(
+                amount=int(package_price),
+                phone_number=phone_number,
+                external_reference=transaction_id,
+                callback_url=callback_url
+
+            )
+
+            # Save the payment details in the database
+            Payment.objects.create(
+                user=request.user,
+                transaction_id=transaction_id,
+                package_name=package_name,
+                package_price=package_price,
+                phone_number=phone_number,
+                status='pending'
+            )
+            # response to the client
+            response = {
+                'status': 'success',
+                'message': 'Payment initiated successfully. Please check your phone.',
+                'transaction_id': transaction_id
+            }
+            return JsonResponse(response)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def payment_callback(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(data)
+
+            # Retrieve the nested response dictionary
+            response_data = data.get('response', {})
+
+            # Extract transaction_id and status from the response data
+            transaction_id = response_data.get('ExternalReference')
+            status = response_data.get('Status')  # status should be 'success' or 'failure'
+
+            # Update payment status in the database
+            payment = Payment.objects.get(transaction_id=transaction_id)
+            payment.status = status
+            payment.save()
+            if status == "Success":
+                user = payment.user
+                acc = Account.objects.get(user=user)
+                acc.package_bought = 1
+                acc.save()
+
+            return JsonResponse({'status': 'success'})
+        except Payment.DoesNotExist:
+            print('trans id not found')
+            return JsonResponse({'status': 'error', 'message': 'Transaction ID not found'}, status=404)
+        except json.JSONDecodeError:
+            print('Invalid JSON')
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print('Error:', e)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def deposit_callback(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(data)
+
+            response_data = data.get('response', {})
+            transaction_id = response_data.get('ExternalReference')
+            status = response_data.get('Status')
+
+            # Update payment status in the database
+            payment = Payment.objects.get(transaction_id=transaction_id)
+            payment.status = status
+            payment.save()
+            if status == "Success":
+                user = payment.user
+                acc = Account.objects.get(user=user)
+                balance = acc.balance + payment.package_price
+                acc.balance = balance
+                acc.save()
+
+                response = {
+                    'status': 'success',
+                }
+                return JsonResponse(response)
+        except Payment.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Transaction ID not found'}, status=404)
+        except json.JSONDecodeError:
+            print('Invalid JSON')
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print('Error:', e)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def withdraw_callback(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(data)
+
+            # Retrieve the nested response dictionary
+            response_data = data.get('response', {})
+
+            # Extract transaction_id and status from the response data
+            transaction_id = response_data.get('ExternalReference')
+            status = response_data.get('Status')
+
+            # Update payment status in the database
+            payment = Payment.objects.get(transaction_id=transaction_id)
+            payment.status = status
+            payment.save()
+            if status == "Success":
+                user = payment.user
+                acc = Account.objects.get(user=user)
+                balance = acc.balance - payment.package_price
+                acc.balance = balance
+                acc.save()
+
+                response = {
+                    'status': 'success',
+                }
+                return JsonResponse(response)
+        except Payment.DoesNotExist:
+            print('trans id not found')
+            return JsonResponse({'status': 'error', 'message': 'Transaction ID not found'}, status=404)
+        except json.JSONDecodeError:
+            print('Invalid JSON')
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print('Error:', e)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+@login_required()
+def payment_status(request, transaction_id):
+    try:
+        payment = Payment.objects.get(transaction_id=transaction_id)
+        user = request.user
+        balance = Account.objects.get(user=user).balance
+
+        return JsonResponse({'status': payment.status, 'balance': balance})
+    except Payment.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Transaction ID not found'}, status=404)
+

@@ -9,3 +9,6 @@
 /config/credentials.json
 /smartcash/.env
 
+*.env
+.gitignore
+
