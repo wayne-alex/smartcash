@@ -1,17 +1,45 @@
 from datetime import datetime, timedelta
 
 import requests
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
-from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
-from django import forms
-from .models import Account, Package, Referral,Mobile
-from django.urls import reverse
-from .forms import SignUpForm
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+from .models import Account, Package, Profile, Affiliate, EmailToken
+
+
+# Helping methods
+def mask_email(email):
+    # Split the email into username and domain parts
+    username, domain = email.split('@')
+    # Mask the username part
+    masked_username = username[:2] + '*****' + username[-1:]
+    # Combine the masked username with the domain
+    return masked_username + '@' + domain
+
+
+def send_email(name, to, subject, html_message):
+    url = "https://node-mailer-brown.vercel.app/send-email"
+    email_data = {
+        "name": name,
+        "to": to,
+        "subject": subject,
+        "html_message": html_message,
+    }
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.post(url, json=email_data, headers=headers)
+        response.raise_for_status()  # Raise an error for bad status codes
+        print("Response:", response.json())
+    except requests.exceptions.RequestException as e:
+        print("Error:", e)
 
 
 def home(request):
@@ -30,37 +58,140 @@ def home(request):
         return render(request, 'home.html')
 
 
-def register_user(request, referrer):
+def register_user(request):
     if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            # Authenticate and login
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password1']
-            user = authenticate(username=username, password=password)
-            login(request, user)
-            # Retrieve the referrer user based on the referrer parameter (assuming referrer is the username)
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        phone_number = request.POST.get('phone_number')
+        invited_by = request.POST.get('invited_by')
+        if not username or not email or not password or not confirm_password or not phone_number:
+            messages.error(request, 'All fields are required.')
+            return redirect('register')
+
+        if password != confirm_password:
+            messages.error(request, 'Passwords do not match.')
+            return redirect('register')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already exists.')
+            return redirect('register')
+
+        if User.objects.filter(profile__phone_number=phone_number).exists():
+            messages.error(request, 'Phone number already exists.')
+            return redirect('register')  # Replace with your register URL
+
+        # Create User object
+        user = User.objects.create_user(username=username, email=email, password=password)
+        acc = Account.objects.create(user=user, )
+        _profile = Profile(user=user, phone_number=phone_number)
+        _profile.save()
+        referrer_username = invited_by
+        if referrer_username:
             try:
-                referrer_user = User.objects.get(username=referrer)
+                referrer_user = User.objects.get(username=referrer_username)
+                Affiliate.objects.create(user=user, referer=referrer_user)
             except User.DoesNotExist:
-                # Handle the case where the referrer user does not exist
                 referrer_user = None
-            messages.success(request, "You have successfully registered! Choose a preferred package to continue")
-            user_id = request.user.id
-            # Create or update the Account and Referral objects for the user
-            acc, _ = Account.objects.get_or_create(userid=user_id,
-                                                   defaults={'account_balance': 0, 'referral_balance': 0,
-                                                             'views_balance': 0})
-            if referrer_user:
-                ref, _ = Referral.objects.get_or_create(user_id=user_id, referrer_id=referrer_user.id,
-                                                        defaults={'amount': 0})
-            return redirect('phone_verification')
+
+        messages.success(request,
+                         "You have successfully registered! Kindly confirm your Email Address to continue.")
+        return redirect('confirm_email')
+    else:
+        aff = request.GET.get('aff')
+        if aff:
+            return render(request, 'register.html', {'aff': aff})
+    return render(request, 'register.html')
+
+
+@login_required
+def confirm_email(request):
+    user = request.user
+    acc = Account.objects.get(user=user)
+    email_state = acc.email_confirmed
+
+    # If email is already confirmed, redirect to dashboard
+    if email_state:
+        return redirect('dashboard')
+    else:
+        recent_email_token = EmailToken.objects.filter(user=user,
+                                                       created_at__gte=timezone.now() - timedelta(minutes=20)).exists()
+
+        # If there's a recent token, inform the user and render the same page
+        if recent_email_token:
+            messages.success(request, 'Email already sent to your email address')
+            return render(request, 'confirm_email.html',
+                          {'email': mask_email(user.email), 'reason': 'Confirm your Email Address'})
+        else:
+            eT = EmailToken(user=user)
+            eT.save()
+            recent_email_token = EmailToken.objects.filter(user=user, created_at__gte=timezone.now() - timedelta(
+                minutes=20)).first()
+
+            _token = recent_email_token.token
+            # Generate the confirmation URL
+            confirm_url = f"https://smartcash.vercel.app/confirm-email/?token={_token}"
+
+            # Send the confirmation email
+            email = user.email
+            name = 'SMARTCASH LTD'
+            subject = 'Confirm Email'
+            send_email(
+                name=name,
+                subject=subject,
+                to=email,
+                html_message=render_to_string('confirmEmail.html',
+                                              {'username': user.username, 'confirm_url': confirm_url})
+            )
+            messages.info(request, 'An email has been sent to confirm your email address.')
+
+            return render(request, 'confirm_email.html',
+                          {'email': mask_email(email), 'reason': 'Confirm your Email Address'})
+
+
+def email_confirmation(request):
+    token = request.GET.get('token')
+
+    if token:
+        # Check if the token exists and is valid
+        email_token = get_object_or_404(EmailToken, token=token, created_at__gte=timezone.now() - timedelta(hours=24))
+        user = email_token.user
+
+        # Mark email as confirmed
+        acc = get_object_or_404(Account, user=user)
+        acc.email_confirmed = True
+        acc.save()
+
+        # Delete the email token after it has been used for confirmation
+        email_token.delete()
+
+        # Redirect to some page after successful confirmation
+        messages.success(request, 'Your email has been successfully confirmed.')
+        email = user.email
+        name = 'SMARTCASH LTD'
+        subject = 'Welcome to Smart Cash'
+        url = f"https://smartcash.vercel.app/login"
+        send_email(
+            to=email, name=name, subject=subject,
+            html_message=render_to_string('welcomeEmail.html', {'name': user.username, 'url': url})
+        )
+        return redirect('dashboard')  # Redirect to dashboard or any other page
 
     else:
-        form = SignUpForm()
+        # Handle case where token is missing or invalid
+        messages.error(request, 'Invalid or expired confirmation link.')
+        return redirect('login')  # Redirect to login page or handle as appropriate
 
-    return render(request, 'register.html', {'form': form})
+
+@login_required()
+def dashboard(request):
+    user = request.user
+    acc = Account.objects.get(user=user)
+    buy_state = acc.package_bought
+
+    if not buy_state:
+        return redirect('buy_package')
 
 
 @login_required
@@ -71,6 +202,18 @@ def dashboard(request):
     package_ = Package.objects.get(userid=user_id)
 
     return render(request, 'dashboard.html', {'username': username, 'account': account, 'package': package_})
+
+
+@login_required()
+def buy_package(request):
+    user = request.user
+    profile = Profile.objects.get(user=user)
+    phone = profile.phone_number
+    acc = Account.objects.get(user=user)
+    if acc.package_bought:
+        return redirect('dashboard')
+    else:
+        return render(request, 'buy_package.html', {'phone': phone})
 
 
 @login_required
@@ -94,13 +237,6 @@ def package(request):
 
 def package_buy(request):
     return render(request, 'package_buy.html')
-
-
-def buy_package(request, username, package_type):
-    username = username
-    package_type = package_type
-
-    return render(request, 'buy.html', {'username': username, 'package_type': package_type})
 
 
 def logout_user(request):
@@ -199,6 +335,7 @@ def verify_phone_number(request):
     else:
         return render(request, 'mobile.html', {'verification_code_sent': False})
 
+
 @login_required
 def verify_code(request):
     if request.method == 'POST':
@@ -227,7 +364,6 @@ def verify_code(request):
 
     else:
         return redirect('verify_phone_number')
-
 
 
 def resend_code(request):

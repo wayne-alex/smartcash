@@ -1,34 +1,42 @@
+import uuid
+
+from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 
 class Account(models.Model):
-    userid = models.IntegerField()
-    date = models.DateTimeField(auto_now_add=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE,null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    email_confirmed = models.BooleanField(default=False)
+    package_bought = models.BooleanField(default=False)
     account_balance = models.IntegerField()
     referral_balance = models.IntegerField()
     views_balance = models.IntegerField()
 
-    def __int__(self):
-        return self.userid
+    def __str__(self):
+        return f"Account(user={self.user.username}, email_confirmed={self.email_confirmed}, package_bought={self.package_bought})"
 
 
 class Package(models.Model):
-    userid = models.IntegerField()
-    date = models.DateTimeField(auto_now_add=True)
-    package_type = models.CharField(max_length=10)
-    due_date = models.DateField()
+    name = models.CharField(max_length=255,null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2,null=True)
+
+    def __str__(self):
+        return self.name
 
 
-class Referral(models.Model):
+class Affiliate(models.Model):
+    user = models.OneToOneField(User, related_name='affiliate', on_delete=models.CASCADE)
+    referer = models.ForeignKey(User, related_name='referred_user', on_delete=models.SET_NULL, null=True, blank=True)
     date = models.DateTimeField(auto_now_add=True)
-    user_id = models.IntegerField()  # The ID of the user who is referred (referred user)
-    referrer_id = models.IntegerField()  # The ID of the user who referred someone (referrer)
-    amount = models.IntegerField()
+    package = models.ForeignKey(Package, on_delete=models.SET_NULL, null=True, blank=True)
+    verified = models.BooleanField(default=False)
 
 
 class Withdraw(models.Model):
     date = models.DateTimeField(auto_now_add=True)
-    user_id = models.IntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE,null=True)
     amount = models.IntegerField()
     status = models.CharField(max_length=10)
 
@@ -36,13 +44,25 @@ class Withdraw(models.Model):
 class Deposit(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     type = models.CharField(max_length=10, default="Buy")
-    user_id = models.IntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     amount = models.IntegerField()
     status = models.CharField(max_length=10)
 
 
-class Mobile(models.Model):
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=10, unique=True)
+    package = models.ForeignKey(Package, on_delete=models.SET_NULL, null=True, blank=True)
+    last_active = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.user.username
+
+
+class EmailToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,null=True)
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    user_id = models.IntegerField()
-    phone_number = models.IntegerField()
-    verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"EmailToken(user={self.user}, token={self.token})"

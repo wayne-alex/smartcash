@@ -8,3 +8,4 @@
 # Ignore sensitive credentials
 /config/credentials.json
 /smartcash/.env
+
